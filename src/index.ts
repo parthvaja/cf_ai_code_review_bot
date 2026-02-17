@@ -175,8 +175,62 @@ Provide:
       });
     }
 
-    // Serve frontend (we'll add this in Phase 4)
-    return new Response('Code Review Bot API - Endpoints: /api/review, /api/history, /api/stats', {
+    // Serve frontend HTML
+    if (url.pathname === '/' || url.pathname === '/index.html') {
+      // We'll use HTMLRewriter or inline HTML
+      // For now, return a simple message directing to use the deployed version
+      return new Response(`
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Code Review Bot</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            margin: 0;
+            padding: 20px;
+        }
+        .message {
+            background: white;
+            padding: 40px;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            text-align: center;
+            max-width: 600px;
+        }
+        h1 { color: #667eea; margin-bottom: 20px; }
+        p { color: #666; line-height: 1.6; margin-bottom: 15px; }
+        code { background: #f5f5f5; padding: 2px 8px; border-radius: 4px; }
+        .endpoint { background: #667eea; color: white; padding: 10px; border-radius: 8px; margin: 10px 0; }
+    </style>
+</head>
+<body>
+    <div class="message">
+        <h1>🤖 AI Code Review Bot</h1>
+        <p>API is running! Use the following endpoints:</p>
+        <div class="endpoint"><code>POST /api/review</code> - Get code review</div>
+        <div class="endpoint"><code>GET /api/history</code> - Get review history</div>
+        <div class="endpoint"><code>GET /api/stats</code> - Get user stats</div>
+        <p style="margin-top: 30px; color: #999;">Deploy to Cloudflare Pages for the full UI experience</p>
+    </div>
+</body>
+</html>
+      `, {
+        headers: { 'Content-Type': 'text/html' },
+      });
+    }
+
+   // Let Cloudflare serve static assets from public/
+    // This is handled automatically by the [assets] config in wrangler.toml
+    return new Response('Not found', { 
+      status: 404,
       headers: { ...corsHeaders, 'Content-Type': 'text/plain' },
     });
   },

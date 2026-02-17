@@ -11,7 +11,11 @@ binding = "AI"
 name = "REVIEW_MEMORY"
 class_name = "ReviewMemory"
 
-# Migrations for Durable Objects
+# Migrations for Durable Objects (SQLite for free plan)
 [[migrations]]
 tag = "v1"
-new_classes = ["ReviewMemory"]
+new_sqlite_classes = ["ReviewMemory"]
+
+# Static assets
+[assets]
+directory = "./public"
