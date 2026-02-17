@@ -2,6 +2,9 @@
 
 An intelligent code review assistant powered by **Cloudflare Workers AI** (Llama 3.3), featuring context-aware reviews, persistent memory, and a beautiful chat interface.
 
+Please follow the link below to use the bot 
+https://code-review-bot.parthvaja.workers.dev
+
 ![Code Review Bot](https://img.shields.io/badge/Cloudflare-Workers-orange) ![AI](https://img.shields.io/badge/AI-Llama%203.3-blue) ![TypeScript](https://img.shields.io/badge/TypeScript-007ACC?logo=typescript&logoColor=white)
 
 ## 🌟 Features
