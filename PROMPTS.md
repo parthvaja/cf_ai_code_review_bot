@@ -21,4 +21,17 @@ This document contains all AI prompts used during the development of this projec
 - "Build code review endpoint with context awareness from previous reviews"
 - "Set up Durable Objects for storing review history"
 
+## Phase 3 - Enhanced Memory & State
+
+### Development Prompts
+- "Add user statistics tracking to Durable Objects"
+- "Implement context-aware prompting with review history"
+- "Create issue and suggestion counting heuristics"
+- "Add stats endpoint to track user's coding patterns"
+
+### Enhanced System Prompt
+- Added user statistics context: "User Statistics: Total reviews: X, Languages used: Y, Z. Focus on patterns you've noticed in their previous code."
+
+
+
 *More prompts will be added as development continues...*
