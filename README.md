@@ -200,36 +200,35 @@ Track your coding journey:
 - **Mobile responsive**: Works on all devices
 - **Keyboard shortcuts**: Shift+Enter to submit
 
+- **🔍 Multiple Review Modes**:
+  - **Security Focus**: Vulnerability detection and security best practices
+  - **Performance Focus**: Optimization opportunities and bottlenecks
+  - **Style Focus**: Code readability and maintainability
+  - **Complexity Analysis**: Metrics and simplification suggestions
+  
+- **📚 Learning Mode**: Ask questions about your code and get interactive explanations
+- **📊 Complexity Metrics**: Automated cyclomatic and cognitive complexity analysis
+- **🎯 Specialized Experts**: Mode-specific AI prompts for deeper analysis
+
+
 ## 🔮 Future Enhancements
 
 Here are planned features for future iterations:
 
-### Phase 6: Advanced Features
-- [ ] **Multi-file analysis**: Review entire projects
-- [ ] **Diff comparison**: Compare code versions
-- [ ] **Export reports**: Download reviews as PDF/Markdown
-- [ ] **Code suggestions**: Auto-fix common issues
-- [ ] **Team collaboration**: Share reviews with teammates
 
-### Phase 7: Enhanced AI
-- [ ] **Custom fine-tuning**: Train on your codebase
-- [ ] **Multiple AI models**: Choose between different LLMs
-- [ ] **Specialized reviewers**: Security, performance, style experts
-- [ ] **Learning mode**: Explain concepts interactively
-
-### Phase 8: Integration & Automation
+### Integration & Automation
 - [ ] **GitHub integration**: Auto-review pull requests
 - [ ] **VS Code extension**: Review code in your editor
 - [ ] **Slack/Discord bot**: Get reviews in chat
 - [ ] **CI/CD pipeline**: Automated code quality gates
 
-### Phase 9: Advanced Analytics
+### Advanced Analytics
 - [ ] **Code quality trends**: Track improvements over time
 - [ ] **Team dashboards**: Organization-wide insights
 - [ ] **Benchmarking**: Compare against best practices
 - [ ] **Custom rules engine**: Define your own review criteria
 
-### Phase 10: Voice & Accessibility
+### Voice & Accessibility
 - [ ] **Voice input**: Describe code problems verbally
 - [ ] **Text-to-speech**: Listen to reviews
 - [ ] **Screen reader support**: Full accessibility

@@ -385,6 +385,76 @@
             color: #667eea;
             margin-bottom: 10px;
         }
+        
+        .mode-badge {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 12px;
+            font-size: 11px;
+            font-weight: bold;
+            margin-left: 10px;
+        }
+
+        .mode-general { background: #e3f2fd; color: #1976d2; }
+        .mode-security { background: #ffebee; color: #c62828; }
+        .mode-performance { background: #fff3e0; color: #ef6c00; }
+        .mode-style { background: #f3e5f5; color: #7b1fa2; }
+        .mode-complexity { background: #e8f5e9; color: #2e7d32; }
+
+        .learning-box {
+            background: #fff9e6;
+            border-left: 4px solid #ffc107;
+            padding: 15px;
+            margin-top: 15px;
+            border-radius: 8px;
+        }
+
+        .learning-box h4 {
+            color: #f57f17;
+            margin-bottom: 10px;
+        }
+
+        .complexity-metrics {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 10px;
+            margin-top: 10px;
+        }
+
+        .metric-card {
+            background: white;
+            padding: 10px;
+            border-radius: 8px;
+            border: 2px solid #e0e0e0;
+            text-align: center;
+        }
+
+        .metric-card .label {
+            font-size: 11px;
+            color: #666;
+            margin-bottom: 5px;
+        }
+
+        .metric-card .value {
+            font-size: 20px;
+            font-weight: bold;
+            color: #667eea;
+        }
+
+        .ask-question-box {
+            margin-top: 15px;
+            padding: 15px;
+            background: #f5f5f5;
+            border-radius: 8px;
+        }
+
+        .ask-question-box input {
+            width: 100%;
+            padding: 10px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            margin-top: 8px;
+        }
     </style>
 </head>
 <body>
@@ -447,6 +517,13 @@
                         <option value="php">PHP</option>
                         <option value="ruby">Ruby</option>
                         <option value="other">Other</option>
+                    </select>
+                    <select class="language-select" id="modeSelect" style="flex: 1;">
+                        <option value="general">🔍 General Review</option>
+                        <option value="security">🔒 Security Focus</option>
+                        <option value="performance">⚡ Performance Focus</option>
+                        <option value="style">🎨 Style & Readability</option>
+                        <option value="complexity">📊 Complexity Analysis</option>
                     </select>
                 </div>
                 <textarea id="codeInput" placeholder="Paste your code here..."></textarea>
@@ -519,6 +596,7 @@
         async function submitCode() {
             const code = document.getElementById('codeInput').value.trim();
             const language = document.getElementById('languageSelect').value;
+            const mode = document.getElementById('modeSelect').value;
 
             if (!code) {
                 alert('Please enter some code to review!');
@@ -532,11 +610,11 @@
             submitBtn.disabled = true;
             submitBtn.innerHTML = '<span class="loading"></span> Reviewing...';
 
-            // Add user message
-            addMessage('user', code, language);
+            // Add user message with mode badge
+            addMessageWithMode('user', code, language, mode);
 
             try {
-                const response = await fetch(`${API_URL}/api/review`, {
+                const response = await fetch(`${API_URL}/api/review-with-mode`, {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
@@ -545,6 +623,7 @@
                         code,
                         language,
                         userId: USER_ID,
+                        mode,
                     }),
                 });
 
@@ -554,8 +633,8 @@
                     throw new Error(data.error);
                 }
 
-                // Add bot response
-                addMessage('bot', data.review);
+                // Add bot response with mode
+                addMessageWithMode('bot', data.review, language, mode);
 
                 // Clear input
                 document.getElementById('codeInput').value = '';
@@ -571,6 +650,179 @@
                 isLoading = false;
                 submitBtn.disabled = false;
                 submitBtn.innerHTML = 'Get Code Review';
+            }
+        }
+
+        function addMessageWithMode(type, content, language = '', mode = 'general') {
+            const chatArea = document.getElementById('chatArea');
+            
+            // Remove welcome message if exists
+            const welcome = chatArea.querySelector('.welcome-message');
+            if (welcome) {
+                welcome.remove();
+            }
+
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `message ${type}`;
+
+            const modeIcons = {
+                general: '🔍',
+                security: '🔒',
+                performance: '⚡',
+                style: '🎨',
+                complexity: '📊'
+            };
+
+            const modeNames = {
+                general: 'General',
+                security: 'Security',
+                performance: 'Performance',
+                style: 'Style',
+                complexity: 'Complexity'
+            };
+
+            if (type === 'user') {
+                lastReview.code = content;
+                lastReview.language = language;
+                lastReview.mode = mode;
+                
+                messageDiv.innerHTML = `
+                    <div class="message-content">
+                        <strong>Your Code (${language})</strong>
+                        <span class="mode-badge mode-${mode}">${modeIcons[mode]} ${modeNames[mode]}</span>
+                        <div class="code-block">${escapeHtml(content)}</div>
+                    </div>
+                `;
+            } else {
+                lastReview.review = content;
+                
+                messageDiv.innerHTML = `
+                    <div class="message-content">
+                        <strong>🤖 Review</strong>
+                        <span class="mode-badge mode-${mode}">${modeIcons[mode]} ${modeNames[mode]} Analysis</span>
+                        <div style="margin-top: 10px; line-height: 1.6;">${formatReview(content)}</div>
+                        <div class="action-buttons">
+                            <button class="action-btn" onclick="exportReview(this)">📥 Export as Markdown</button>
+                            <button class="action-btn primary" onclick="suggestFix(this)">✨ Suggest Fix</button>
+                            <button class="action-btn" onclick="analyzeComplexity(this)">📊 Complexity</button>
+                            <button class="action-btn" onclick="askQuestion(this)">💡 Ask Question</button>
+                            <button class="action-btn" onclick="copyReview(this)">📋 Copy</button>
+                        </div>
+                    </div>
+                `;
+            }
+
+            chatArea.appendChild(messageDiv);
+            chatArea.scrollTop = chatArea.scrollHeight;
+        }
+
+        async function analyzeComplexity(btn) {
+            if (!lastReview.code) {
+                alert('No code to analyze!');
+                return;
+            }
+
+            const originalText = btn.innerHTML;
+            btn.innerHTML = '<span class="loading"></span> Analyzing...';
+            btn.disabled = true;
+
+            try {
+                const response = await fetch(`${API_URL}/api/complexity`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        code: lastReview.code,
+                        language: lastReview.language,
+                    }),
+                });
+
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+
+                const data = await response.json();
+
+                // Add complexity analysis to chat
+                const chatArea = document.getElementById('chatArea');
+                const analysisDiv = document.createElement('div');
+                analysisDiv.className = 'message bot';
+                analysisDiv.innerHTML = `
+                    <div class="message-content">
+                        <div class="learning-box" style="background: #e8f5e9; border-color: #2e7d32;">
+                            <h4 style="color: #2e7d32;">📊 Complexity Analysis</h4>
+                            <div style="line-height: 1.6;">${formatReview(data.analysis)}</div>
+                        </div>
+                    </div>
+                `;
+                chatArea.appendChild(analysisDiv);
+                chatArea.scrollTop = chatArea.scrollHeight;
+
+                btn.innerHTML = originalText;
+                btn.disabled = false;
+            } catch (error) {
+                console.error('Complexity analysis error:', error);
+                alert('Failed to analyze complexity');
+                btn.innerHTML = originalText;
+                btn.disabled = false;
+            }
+        }
+
+        async function askQuestion(btn) {
+            if (!lastReview.code) {
+                alert('No code to ask about!');
+                return;
+            }
+
+            const question = prompt('What would you like to learn about this code?');
+            if (!question) return;
+
+            const originalText = btn.innerHTML;
+            btn.innerHTML = '<span class="loading"></span> Explaining...';
+            btn.disabled = true;
+
+            try {
+                const response = await fetch(`${API_URL}/api/explain`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        code: lastReview.code,
+                        language: lastReview.language,
+                        question: question,
+                    }),
+                });
+
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+
+                const data = await response.json();
+
+                // Add explanation to chat
+                const chatArea = document.getElementById('chatArea');
+                const explanationDiv = document.createElement('div');
+                explanationDiv.className = 'message bot';
+                explanationDiv.innerHTML = `
+                    <div class="message-content">
+                        <div class="learning-box">
+                            <h4>💡 Question: ${escapeHtml(question)}</h4>
+                            <div style="line-height: 1.6;">${formatReview(data.explanation)}</div>
+                        </div>
+                    </div>
+                `;
+                chatArea.appendChild(explanationDiv);
+                chatArea.scrollTop = chatArea.scrollHeight;
+
+                btn.innerHTML = originalText;
+                btn.disabled = false;
+            } catch (error) {
+                console.error('Explain error:', error);
+                alert('Failed to get explanation');
+                btn.innerHTML = originalText;
+                btn.disabled = false;
             }
         }
 
@@ -657,7 +909,7 @@
                 submitCode();
             }
         });
-        let lastReview = { code: '', review: '', language: '' };
+        let lastReview = { code: '', review: '', language: '', mode: 'general' };
 
         // Update the addMessage function to store last review
         function addMessage(type, content, language = '') {

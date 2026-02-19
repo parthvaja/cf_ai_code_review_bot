@@ -33,6 +33,13 @@ interface HistoryResponse {
   stats: UserStats;
 }
 
+interface ReviewRequest {
+  code: string;
+  language?: string;
+  userId?: string;
+  mode?: string;
+}
+
 export default {
   async fetch(request: Request, env: Env): Promise<Response> {
     const url = new URL(request.url);
@@ -307,6 +314,216 @@ Provide:
         });
 
         return new Response(JSON.stringify({ suggestion: response.response }), {
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      } catch (error: any) {
+        return new Response(JSON.stringify({ error: error.message }), {
+          status: 500,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      }
+    }
+
+    // API endpoint: /api/review-with-mode
+    if (url.pathname === '/api/review-with-mode' && request.method === 'POST') {
+      try {
+        const body = await request.json() as ReviewRequest & { mode?: string };
+        const { code, language, userId, mode = 'general' } = body;
+
+        if (!code) {
+          return new Response(JSON.stringify({ error: 'Code is required' }), {
+            status: 400,
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          });
+        }
+
+        // Get Durable Object for this user
+        const id = env.REVIEW_MEMORY.idFromName(userId || 'default-user');
+        const stub = env.REVIEW_MEMORY.get(id);
+
+        // Get conversation history
+        const historyResponse = await stub.fetch('http://internal/history');
+        const history = await historyResponse.json() as HistoryResponse;
+
+        // Mode-specific system prompts
+        const modePrompts: Record<string, string> = {
+          security: `You are a security expert reviewing code for vulnerabilities. Focus on:
+- SQL injection, XSS, CSRF risks
+- Input validation and sanitization
+- Authentication and authorization issues
+- Data exposure and sensitive information handling
+- Cryptography and secure communication
+Be thorough and explain the security impact of each finding.`,
+
+          performance: `You are a performance optimization expert. Focus on:
+- Time complexity and algorithmic efficiency
+- Memory usage and resource management
+- Database query optimization
+- Caching opportunities
+- Bottlenecks and scalability issues
+Provide specific performance metrics and optimization suggestions.`,
+
+          style: `You are a code style and readability expert. Focus on:
+- Code organization and structure
+- Naming conventions and clarity
+- Documentation and comments
+- Design patterns and best practices
+- Maintainability and refactoring opportunities
+Emphasize clean code principles.`,
+
+          complexity: `You are a code complexity analyst. Analyze:
+- Cyclomatic complexity
+- Code maintainability
+- Function length and responsibilities
+- Nesting depth and cognitive load
+- Code duplication
+Provide complexity scores and simplification suggestions.`,
+
+          general: `You are an expert code reviewer. Provide balanced feedback on:
+- Code quality and best practices
+- Potential bugs and edge cases
+- Performance considerations
+- Security concerns
+- Readability and maintainability`
+        };
+
+        const systemPrompt = modePrompts[mode] || modePrompts.general;
+
+        const statsContext = history.stats.totalReviews > 0 
+          ? `\nUser has ${history.stats.totalReviews} previous reviews in: ${history.stats.languagesUsed.join(', ')}`
+          : '';
+
+        const userPrompt = `Review this ${language || 'code'}:
+
+\`\`\`${language || ''}
+${code}
+\`\`\`
+
+Provide detailed analysis based on your expertise.${statsContext}`;
+
+        // Call Llama 3.3 via Workers AI
+        const response = await env.AI.run('@cf/meta/llama-3.3-70b-instruct-fp8-fast', {
+          messages: [
+            { role: 'system', content: systemPrompt },
+            { role: 'user', content: userPrompt },
+          ],
+          max_tokens: 1500,
+        });
+
+        const review = response.response;
+
+        // Save review to memory with mode
+        await stub.fetch('http://internal/save', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            code,
+            language: language || 'unknown',
+            review: `[${mode.toUpperCase()}] ${review}`,
+            timestamp: Date.now(),
+          }),
+        });
+
+        // Save review to memory with mode
+        const saveResponse = await stub.fetch('http://internal/save', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            code,
+            language: language || 'unknown',
+            review: `[${mode.toUpperCase()}] ${review}`,
+            timestamp: Date.now(),
+          }),
+        });
+
+        const saveData = await saveResponse.json() as { success: boolean; stats: UserStats };
+
+        return new Response(JSON.stringify({ 
+          review,
+          mode,
+          stats: saveData.stats 
+        }), {
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      } catch (error: any) {
+        console.error('Error:', error);
+        return new Response(JSON.stringify({ error: error.message }), {
+          status: 500,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      }
+    }
+
+    // API endpoint: /api/explain (Learning mode)
+    if (url.pathname === '/api/explain' && request.method === 'POST') {
+      try {
+        const body = await request.json() as { code: string; language: string; question: string };
+        const { code, language, question } = body;
+
+        const prompt = `You are a patient coding teacher. A student is looking at this ${language} code and asks: "${question}"
+
+\`\`\`${language || ''}
+${code}
+\`\`\`
+
+Explain clearly with:
+1. Direct answer to their question
+2. Relevant code examples
+3. Common pitfalls to avoid
+4. Best practices
+
+Keep explanations beginner-friendly but technically accurate.`;
+
+        const response = await env.AI.run('@cf/meta/llama-3.3-70b-instruct-fp8-fast', {
+          messages: [
+            { role: 'system', content: 'You are an expert programming teacher who explains concepts clearly and patiently.' },
+            { role: 'user', content: prompt },
+          ],
+          max_tokens: 1024,
+        });
+
+        return new Response(JSON.stringify({ explanation: response.response }), {
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      } catch (error: any) {
+        return new Response(JSON.stringify({ error: error.message }), {
+          status: 500,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      }
+    }
+
+    // API endpoint: /api/complexity (Complexity analysis)
+    if (url.pathname === '/api/complexity' && request.method === 'POST') {
+      try {
+        const body = await request.json() as { code: string; language: string };
+        const { code, language } = body;
+
+        const prompt = `Analyze the complexity of this ${language} code and provide metrics:
+
+\`\`\`${language || ''}
+${code}
+\`\`\`
+
+Provide:
+1. Cyclomatic Complexity: [1-10 score]
+2. Cognitive Complexity: [1-10 score]
+3. Maintainability Index: [1-100 score]
+4. Lines of Code: [count]
+5. Key Issues: [list main problems]
+6. Refactoring Suggestions: [specific improvements]
+
+Format as JSON-like structure for easy parsing.`;
+
+        const response = await env.AI.run('@cf/meta/llama-3.3-70b-instruct-fp8-fast', {
+          messages: [
+            { role: 'system', content: 'You are a code metrics expert. Provide accurate complexity analysis.' },
+            { role: 'user', content: prompt },
+          ],
+          max_tokens: 1024,
+        });
+
+        return new Response(JSON.stringify({ analysis: response.response }), {
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         });
       } catch (error: any) {
