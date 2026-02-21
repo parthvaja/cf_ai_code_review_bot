@@ -261,4 +261,4 @@ MIT License - feel free to use this project as inspiration for your own!
 
 ---
 
-Built with ❤️ for Cloudflare's Summer 2026 Internship Application
+Built with ❤️ for Cloudflare's Summer 2026 Internship Application 
