@@ -1,17 +1,19 @@
 {
-  "name": "cf_ai_code_review_bot",
-  "version": "1.0.0",
-  "main": "index.js",
+  "name": "cf-ai-code-review-bot",
+  "version": "2.0.0",
+  "private": true,
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "dev": "npm run dev --workspace=apps/worker",
+    "dev:web": "npm run dev --workspace=apps/web",
+    "build": "npm run build --workspaces",
+    "deploy": "npm run deploy --workspace=apps/worker",
+    "deploy:web": "npm run deploy --workspace=apps/web"
   },
-  "keywords": [],
-  "author": "",
-  "license": "ISC",
-  "description": "",
   "devDependencies": {
-    "@cloudflare/workers-types": "^4.20260214.0",
-    "typescript": "^5.9.3",
-    "wrangler": "^4.65.0"
+    "typescript": "^5.3.3"
   }
 }
