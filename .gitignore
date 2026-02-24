@@ -5,7 +5,6 @@ node_modules/
 .wrangler/
 .dev.vars
 dist/
-worker/
 
 # Build outputs
 *.log
